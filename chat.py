@@ -11,18 +11,19 @@ https://docs.python.org/3/howto/sockets.html
 https://realpython.com/python-sockets/
 
 """
-def handle_help():
-    print("\nHelp Menu:")
-    print("1. help - Shows this help message.")
-    print("2. myip - Shows the current users IP.")
-    print("3. myport - Displays current port listening on.")
-    print("4. connect - Allows you to connect to another client on the LAN, <destination> is the IP, <port no> is their port number.")
-    print("5. list - Shows the current IPs and ports you are connected to and their id number.")
-    print("6. terminate - Using the command with arg <connection id.> will disconnect that client from your socket")
-    print("7. send - Uses first arg <connection id.> found in list to send the second arg <message> to that client/IP.")
-    print("8. exit - Exits the program.")
 
 
+def get_my_ip():
+        # Gets name of pc
+        hostname = socket.gethostname()
+        # Uses name of PC to find the current IP
+        ip_address = socket.gethostbyname(hostname)
+        print(f"Your IP address is: {ip_address}")
+
+
+# PAss in port number from Peer
+def get_my_port(port):
+    print(f"My Port is: {port}")   
 
 class Peer:
     def __init__(self, host, port):
@@ -38,18 +39,6 @@ class Peer:
         self.id_counter = 1
         # Used to get the program to loop
         self.running = True
-
-    def get_my_ip():
-        # Gets name of pc
-        hostname = socket.gethostname()
-        # Uses name of PC to find the current IP
-        ip_address = socket.gethostbyname(hostname)
-        print(f"Your IP address is: {ip_address}")
-
-    # PAss in port number so we dont pass in self for no reason
-    def get_my_port(port):
-        print(f"My Port is: {port}")    
-
 
     def start_server(self):
         # Starts the server to accept incoming connections.
@@ -76,10 +65,12 @@ class Peer:
             # Reading incoming data if any, if readable has stuff in it, then we go to loop
             readable, _, _ = select.select(self.inputs, [], [])
             for s in readable:
-                # If the server socket is in the readable list, it means a new client is trying to connect.
+                # Has issues with port???
+                # If the server socket is in the readable list, it means a new outside client is trying to connect.
                 if s == self.server:
                     client_socket, addr = self.server.accept()
                     self.inputs.append(client_socket)
+                    print("DEBUG:\n",s,"\n",client_socket,"\n",addr)
                     self.connection_list[self.id_counter] = (client_socket, addr)
                     print(f"New connection from {addr[0]}:{addr[1]} assigned ID {self.id_counter}")
                     self.id_counter += 1
@@ -107,15 +98,15 @@ class Peer:
         if not tokens:
             return
         # First part of input should be main command hence [0]
-        cmd = tokens[0]
+        cmd = tokens[0].lower()
 
         # List of commands we have to deal with
         if cmd == 'help':
             handle_help()
         elif cmd == 'myip':
-            self.get_my_ip()
+            get_my_ip()
         elif cmd == 'myport':
-            self.get_my_port(self.port)
+            get_my_port(self.port)
         elif cmd == 'connect':
             if len(tokens) != 3:
                 print("Please use: connect <IP> <Port>")
@@ -139,6 +130,7 @@ class Peer:
         else:
             print("Invalid command. Type 'help' for the list of commands and explainations.")
 
+    # This connects correctly, but receiving port is wrong somwhere in code?
     # Connects to peer and does checks
     def connect_to_peer(self, ip, port):
         try:
@@ -162,8 +154,12 @@ class Peer:
     #Lists all connections
     def list_connections(self):
         print("ID\tIP Address\tPort")
-        for id, conn in self.connection_list.items():
-            print(f"{id}\t{conn[1][0]}\t{conn[1][1]}")
+        if len(self.connection_list.items()) > 0:
+            for id, conn in self.connection_list.items():
+                print(f"{id}\t{conn[1][0]}\t{conn[1][1]}")
+        else:
+            print("No connections detected!")
+        print("\n")
 
     # Deletes / disconnects from a connection 
     def terminate_connection(self, conn_id):
@@ -239,7 +235,25 @@ class Peer:
         self.server.close()
         sys.exit()
 
-if __name__ == "__main__":
+
+
+
+def handle_help():
+    print("\nHelp Menu:")
+    print("1. help - Shows this help message.")
+    print("2. myip - Shows the current users IP.")
+    print("3. myport - Displays current port listening on.")
+    print("4. connect - Allows you to connect to another client on the LAN, <destination> is the IP, <port no> is their port number.")
+    print("5. list - Shows the current IPs and ports you are connected to and their id number.")
+    print("6. terminate - Using the command with arg <connection id.> will disconnect that client from your socket")
+    print("7. send - Uses first arg <connection id.> found in list to send the second arg <message> to that client/IP.")
+    print("8. exit - Exits the program.")
+
+
+
+
+
+def start_file():
     if len(sys.argv) != 2:
         print("Type to start is: python chat.py <port>")
         sys.exit(1)
@@ -256,3 +270,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
+
+
+start_file()
