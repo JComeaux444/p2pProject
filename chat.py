@@ -59,6 +59,7 @@ class Peer:
 
         self.run()
 
+
     def run(self):
         # Main loop to handle socket inputs and connections.
         while self.running:
@@ -69,11 +70,43 @@ class Peer:
                 # If the server socket is in the readable list, it means a new outside client is trying to connect.
                 if s == self.server:
                     client_socket, addr = self.server.accept()
-                    self.inputs.append(client_socket)
-                    print("DEBUG:\n",s,"\n",client_socket,"\n",addr)
-                    self.connection_list[self.id_counter] = (client_socket, addr)
-                    print(f"New connection from {addr[0]}:{addr[1]} assigned ID {self.id_counter}")
-                    self.id_counter += 1
+
+                    # The FIRST thing we send/receive is the listening port.
+                    # So we capture that info here
+                    listening_port = client_socket.recv(1024).decode()
+                    #print(listening_port)
+
+                    # not working yet, it's like the double connections are actually seperate
+                    # Before adding to connection list, check if the connection already exists (IP and Port)
+                    for conn in self.connection_list.values():
+                        print('for loop in connection check: ',conn)
+                        if conn[1][0] == addr[0] and conn[1][1] == listening_port:
+                            print(f"Already connected to {addr[0]}:{listening_port}")
+                            client_socket.close()
+                            continue  # Connection already exists, so don't add again
+
+                    self.inputs.append(client_socket)# 2 Uncomment
+                    # Kinda like in JS where a server is saying "wait im not done with info yet, come back later"
+                    # when you dont use asyc/await
+                    self.connection_list[self.id_counter] = ("pending", (addr[0], int(listening_port))) # 2 Uncomment
+                    print(f"New connection from {addr[0]}:{listening_port} assigned ID {self.id_counter}")
+                    # We connect to the peer who wants to talk with us
+                    self.connect_to_peer(addr[0],int(listening_port))# TESTTT, UNCOMMENT when done testing
+
+                    print('1')
+                    #client_socket.connect((addr[0], int(listening_port)))
+                    print('2')
+                    #client_socket.sendall(str(self.port).encode())
+                    print('3')
+
+
+                    # finally we add them to the list
+                    self.connection_list[self.id_counter] = (client_socket, (addr[0], listening_port)) # 2 uncom
+                    self.id_counter += 1 # 2 uncom
+                    #del self.connection_list[self.id_counter]
+                    #self.connection_list.popitem()
+                    #self.id_counter -= 1
+                    print(self.id_counter, type(self.connection_list))
                 else:
                     # If a client socket is ready to read, it either has incoming data (recv()) 
                     # or the connection is closed (in which case recv() returns empty).
@@ -82,8 +115,12 @@ class Peer:
                         self.handle_received_message(s, data.decode())
                     else:
                         # Connection was found to have no data, so we remove the connection.
-                        self.remove_connection(s)
+                        try:
+                            self.remove_connection(s)
+                        except :
+                            continue
     
+
     # Handles user input in a separate thread. Meaning it can loop forever withour blocking
     def handle_user_input(self):
         while True:
@@ -130,64 +167,37 @@ class Peer:
         else:
             print("Invalid command. Type 'help' for the list of commands and explainations.")
 
+
     # This connects correctly, but receiving port is wrong somwhere in code?
     # Connects to peer and does checks
     def connect_to_peer(self, ip, port):
         try:
             for conn in self.connection_list.values():
+                #Check and make sure the connection is done connecting
+                if conn[0] == "pending":
+                    continue
                 # Checks to make sure we don't connect twice to someone we are already connected with
-                if conn[1][0] == ip and conn[1][1] == port:
+                # This function will run twice on the 'initiating connector'/ person doing the connecting
+                if conn[1][0] == ip and int(conn[1][1]) == port:
                     print("Already connected to this peer.")
                     return
             # We create a TCP connection with the client we are connecting to.
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client_socket.connect((ip, port))
+            # We MUST send the listening port NOW, otherwise the other client will see the 
+            # temp sending port the socket/server uses
+            # We use str because ints may or may not end up decoded as something else on other side
+            client_socket.sendall(str(self.port).encode())
+
             # Add it to inputs so we can listen to it as seen above
             self.inputs.append(client_socket)
             # Add new connection to the connection list too with id.
             self.connection_list[self.id_counter] = (client_socket, (ip, port))
             print(f"Connected to {ip}:{port} assigning them ID {self.id_counter}")
             self.id_counter += 1
+            print("cp",self.id_counter)
         except Exception as e:
             print(f"FAILED to connect to {ip}:{port}. Error: {e}")
-
-    #Lists all connections
-    def list_connections(self):
-        print("ID\tIP Address\tPort")
-        if len(self.connection_list.items()) > 0:
-            for id, conn in self.connection_list.items():
-                print(f"{id}\t{conn[1][0]}\t{conn[1][1]}")
-        else:
-            print("No connections detected!")
-        print("\n")
-
-    # Deletes / disconnects from a connection 
-    def terminate_connection(self, conn_id):
-        if conn_id in self.connection_list:
-            # we get IP here
-            conn = self.connection_list[conn_id][0]
-            self.inputs.remove(conn)
-            conn.close()
-            del self.connection_list[conn_id]
-            print(f"Connection {conn_id} terminated.")
-        else:
-            print(f"No connection with ID {conn_id}")
-
-    # Send message given connection id and message
-    def send_message(self, conn_id, message):
-        # Find connection in list
-        if conn_id in self.connection_list:
-            # we grab the IP
-            conn = self.connection_list[conn_id][0]
-            try:
-                # we send ALL message data and encode it 
-                # we must send ALL since 'send' will not always send everything at once and would need to be looped weird
-                conn.sendall(message.encode())
-                print(f"Message sent to {conn_id}")
-            except Exception as e:
-                print(f"Failed to send message to {conn_id}. Error: {e}")
-        else:
-            print(f"No connection with ID {conn_id}")
 
 
     # Function that deals with incoming messages from connected clients
@@ -209,18 +219,77 @@ class Peer:
         else:
             print(f"\nReceived message from unknown sender.")
 
+
+    #Lists all connections
+    def list_connections(self):
+        print("ID\tIP Address\tPort")
+        if len(self.connection_list.items()) > 0:
+            for id, conn in self.connection_list.items():
+                print(f"{id}\t{conn[1][0]}\t{conn[1][1]}")
+        else:
+            print("No connections detected!")
+        print("\n")
+
+
+    # Deletes / disconnects from a connection 
+    def terminate_connection(self, conn_id):
+        if conn_id in self.connection_list:
+            conn = self.connection_list[conn_id][0]
+            conn.shutdown(socket.SHUT_RDWR) 
+            """
+            # we get socket here
+            conn = self.connection_list[conn_id][0]
+            try:
+                # Shut down the connection for both sending and receiving
+                conn.shutdown(socket.SHUT_RDWR)  
+                conn.close()  # Close the connection
+            except Exception as e:
+                # We can continue here now, we can ignore error.
+                print(f"Error shutting down connection: {e}")
+                
+            """
+            self.inputs.remove(conn)
+            del self.connection_list[conn_id]
+            print(f"Connection {conn_id} terminated.")
+        else:
+            print(f"No connection with ID {conn_id}")
+
+
+    # Send message given connection id and message
+    def send_message(self, conn_id, message):
+        # Find connection in list
+        if conn_id in self.connection_list:
+            # we grab the socket to send to
+            conn = self.connection_list[conn_id][0]
+            #print(conn,"\n",self.connection_list,"\n")
+            try:
+                # we send ALL message data and encode it 
+                # we must send ALL since 'send' will not always send everything at once and would need to be looped weird
+                conn.sendall(message.encode())
+                print(f"Message sent to {conn_id}")
+            except Exception as e:
+                print(f"Failed to send message to {conn_id}. Error: {e}")
+        else:
+            print(f"No connection with ID {conn_id}")
+
+
     # Removes connection when it's closed. But we run this one if the OTHER client disconnects
     # We can't tell otherwise who disconnected if we dont have multiple functions for this
     def remove_connection(self, conn):
         # conn is the socket the other client is on
         # we check each connection in list to find which we must disconnect
-        for id, c in list(self.connection_list.items()):
-            if c[0] == conn:
-                self.inputs.remove(conn)
-                conn.close()
-                del self.connection_list[id]
-                print(f"Connection {id} closed by peer.")
-                break
+        try:
+            for id, c in list(self.connection_list.items()):
+
+                if c[0] == conn:
+                    self.inputs.remove(conn)
+                    #conn.close()
+                    del self.connection_list[id]
+                    print(f"Connection {id} closed by peer.")
+                    break
+
+        except Exception as e:
+            print(f"Error shutting down connection: {e}")
 
     # Ran when exiting the CLI
     def exit(self):
