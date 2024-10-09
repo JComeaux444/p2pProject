@@ -66,6 +66,8 @@ class Peer:
             # Reading incoming data if any, if readable has stuff in it, then we go to loop
             readable, _, _ = select.select(self.inputs, [], [])
             for s in readable:
+                print("----------------*")
+                
                 # Has issues with port???
                 # If the server socket is in the readable list, it means a new outside client is trying to connect.
                 if s == self.server:
@@ -283,6 +285,7 @@ class Peer:
 
                 if c[0] == conn:
                     self.inputs.remove(conn)
+                    # Try shutdown here too?
                     #conn.close()
                     del self.connection_list[id]
                     print(f"Connection {id} closed by peer.")
@@ -299,8 +302,13 @@ class Peer:
         # close all connections
         for conn in self.inputs:
             if conn != self.server:
-                conn.close()
+                self.inputs.remove(conn)
+                # was close(), trying shutdown though
+                #conn.shutdown(socket.SHUT_RDWR) 
+                #self.terminate_connection()
         # close server now, then we can exit
+        #print('we out')
+        self.inputs.pop(0)
         self.server.close()
         sys.exit()
 
@@ -335,7 +343,7 @@ def start_file():
         peer = Peer(host, port)
         # print help commands so users know how to use
         handle_help()
-        peer.start_server()
+        threading.Thread(target=peer.start_server(), daemon=True).start()
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
