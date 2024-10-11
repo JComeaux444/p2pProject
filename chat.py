@@ -57,9 +57,45 @@ class Peer:
         # This is also needed because otherwise windows blocks it due to security
         threading.Thread(target=self.handle_user_input, daemon=True).start()
 
-        self.run()
+        while True:
+            readable, _, _ = select.select(self.inputs, [], [])
+            for s in readable:
+                #print("----------------*")
+                
+                # Has issues with port???
+                # If the server socket is in the readable list, it means a new outside client is trying to connect.
+                if s == self.server:
+                    client_socket, addr = self.server.accept()
+
+                    # The FIRST thing we send/receive is the listening port.
+                    # So we capture that info here
+                    listening_port = client_socket.recv(1024).decode()
+                    #print(listening_port)
+                    self.inputs.append(client_socket)# 2 Uncomment
+                    # Kinda like in JS where a server is saying "wait im not done with info yet, come back later"
+                    # when you dont use asyc/await
+                    ####self.connection_list[self.id_counter] = ("pending", (addr[0], int(listening_port))) # 2 Uncomment
+                    print(f"New connection from {addr[0]}:{listening_port} assigned ID {self.id_counter}")
+                    # We connect to the peer who wants to talk with us
+                    ####self.connect_to_peer(addr[0],int(listening_port))# TESTTT, UNCOMMENT when done testing
+
+                    print('1')
+                    #client_socket.connect((addr[0], int(listening_port)))
+                    print('2')
+                    #client_socket.sendall(str(self.port).encode())
+                    threading.Thread(target= Peer.listen_to_connection, args=(self,s), daemon=True).start()
+                    ###self.listen_to_connection(s)
+                    print('3')
 
 
+                    # finally we add them to the list
+                    self.connection_list[self.id_counter] = (client_socket, (addr[0], listening_port)) # 2 uncom
+                    self.id_counter += 1 # 2 uncom
+
+
+        #self.run()
+
+    '''
     def run(self):
         # Main loop to handle socket inputs and connections.
         while self.running:
@@ -112,7 +148,7 @@ class Peer:
                     #self.id_counter -= 1
                     print(self.id_counter, type(self.connection_list))
                 
-    
+    '''    
                             
     def listen_to_connection(self, s):
         while True:
