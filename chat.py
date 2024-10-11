@@ -164,14 +164,17 @@ class Peer:
                     print('try get data')
                     self.handle_received_message(client_socket, data)
                 else:
-                    # Connection was found to have no data, so we remove the connection.
+                   
                     try:
                         print('try remove')
                         self.remove_connection(client_socket)
                     except :
                         continue
             except:
-                continue
+                break
+        # Connection was found to have no data, so we remove the connection.
+        print('try remove')
+        self.remove_connection(client_socket)
         
 
     # Handles user input in a separate thread. Meaning it can loop forever withour blocking
