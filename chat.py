@@ -244,6 +244,7 @@ class Peer:
 
             # Add it to inputs so we can listen to it as seen above
             self.inputs.append(client_socket)
+            threading.Thread(target= self.listen_to_connection, args=(client_socket, (ip,int(port))), daemon=True).start()
             # Add new connection to the connection list too with id.
             self.connection_list[self.id_counter] = (client_socket, (ip, port))
             print(f"Connected to {ip}:{port} assigning them ID {self.id_counter}")
