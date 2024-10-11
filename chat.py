@@ -164,12 +164,7 @@ class Peer:
                     print('try get data')
                     self.handle_received_message(client_socket, data)
                 else:
-                   
-                    try:
-                        print('try remove')
-                        self.remove_connection(client_socket)
-                    except :
-                        continue
+                    break
             except:
                 break
         # Connection was found to have no data, so we remove the connection.
