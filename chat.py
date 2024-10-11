@@ -12,6 +12,7 @@ https://realpython.com/python-sockets/
 
 """
 
+#connection_list = {}
 
 def get_my_ip():
         # Gets name of pc
@@ -79,18 +80,19 @@ class Peer:
                     # We connect to the peer who wants to talk with us
                     ####self.connect_to_peer(addr[0],int(listening_port))# TESTTT, UNCOMMENT when done testing
 
-                    print('1')
+                    #print('1')
                     #client_socket.connect((addr[0], int(listening_port)))
-                    print('2')
+                    #print('2')
                     #client_socket.sendall(str(self.port).encode())
-                    threading.Thread(target= Peer.listen_to_connection, args=(self,s), daemon=True).start()
+                    threading.Thread(target= self.listen_to_connection, args=(client_socket, addr), daemon=True).start()
                     ###self.listen_to_connection(s)
-                    print('3')
+                    #print('3')
 
 
                     # finally we add them to the list
                     self.connection_list[self.id_counter] = (client_socket, (addr[0], listening_port)) # 2 uncom
                     self.id_counter += 1 # 2 uncom
+                    print('end')
 
 
         #self.run()
@@ -150,18 +152,22 @@ class Peer:
                 
     '''    
                             
-    def listen_to_connection(self, s):
+    def listen_to_connection(self, client_socket, addr):
+        print('listening ', client_socket)
         while True:
             try:
+                
                 # If a client socket is ready to read, it either has incoming data (recv()) 
                 # or the connection is closed (in which case recv() returns empty).
-                data = s.recv(1024).decode()
+                data = client_socket.recv(1024).decode()
                 if data:
-                    self.handle_received_message(s, data)
+                    print('try get data')
+                    self.handle_received_message(client_socket, data)
                 else:
                     # Connection was found to have no data, so we remove the connection.
                     try:
-                        self.remove_connection(s)
+                        print('try remove')
+                        self.remove_connection(client_socket)
                     except :
                         continue
             except:
