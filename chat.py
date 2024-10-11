@@ -99,7 +99,7 @@ class Peer:
                     #client_socket.connect((addr[0], int(listening_port)))
                     print('2')
                     #client_socket.sendall(str(self.port).encode())
-                    threading.Thread(target= self.listen_to_connection(s)).start()
+                    threading.Thread(target= self.listen_to_connection(s), daemon=True).start()
                     print('3')
 
 
