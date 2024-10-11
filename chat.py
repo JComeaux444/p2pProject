@@ -90,15 +90,16 @@ class Peer:
                     self.inputs.append(client_socket)# 2 Uncomment
                     # Kinda like in JS where a server is saying "wait im not done with info yet, come back later"
                     # when you dont use asyc/await
-                    self.connection_list[self.id_counter] = ("pending", (addr[0], int(listening_port))) # 2 Uncomment
+                    ####self.connection_list[self.id_counter] = ("pending", (addr[0], int(listening_port))) # 2 Uncomment
                     print(f"New connection from {addr[0]}:{listening_port} assigned ID {self.id_counter}")
                     # We connect to the peer who wants to talk with us
-                    self.connect_to_peer(addr[0],int(listening_port))# TESTTT, UNCOMMENT when done testing
+                    ####self.connect_to_peer(addr[0],int(listening_port))# TESTTT, UNCOMMENT when done testing
 
                     print('1')
                     #client_socket.connect((addr[0], int(listening_port)))
                     print('2')
                     #client_socket.sendall(str(self.port).encode())
+                    threading.Thread(target= self.listen_to_connection(s)).start()
                     print('3')
 
 
@@ -109,19 +110,26 @@ class Peer:
                     #self.connection_list.popitem()
                     #self.id_counter -= 1
                     print(self.id_counter, type(self.connection_list))
-                else:
-                    # If a client socket is ready to read, it either has incoming data (recv()) 
-                    # or the connection is closed (in which case recv() returns empty).
-                    data = s.recv(1024)
-                    if data:
-                        self.handle_received_message(s, data.decode())
-                    else:
-                        # Connection was found to have no data, so we remove the connection.
-                        try:
-                            self.remove_connection(s)
-                        except :
-                            continue
+                
     
+                            
+    def listen_to_connection(self, s):
+        while True:
+            try:
+                # If a client socket is ready to read, it either has incoming data (recv()) 
+                # or the connection is closed (in which case recv() returns empty).
+                data = s.recv(1024).decode()
+                if data:
+                    self.handle_received_message(s, data)
+                else:
+                    # Connection was found to have no data, so we remove the connection.
+                    try:
+                        self.remove_connection(s)
+                    except :
+                        continue
+            except:
+                continue
+        
 
     # Handles user input in a separate thread. Meaning it can loop forever withour blocking
     def handle_user_input(self):
