@@ -66,7 +66,7 @@ class Peer:
             # Reading incoming data if any, if readable has stuff in it, then we go to loop
             readable, _, _ = select.select(self.inputs, [], [])
             for s in readable:
-                print("----------------*")
+                #print("----------------*")
                 
                 # Has issues with port???
                 # If the server socket is in the readable list, it means a new outside client is trying to connect.
@@ -99,7 +99,8 @@ class Peer:
                     #client_socket.connect((addr[0], int(listening_port)))
                     print('2')
                     #client_socket.sendall(str(self.port).encode())
-                    threading.Thread(target= self.listen_to_connection(s), daemon=True).start()
+                    threading.Thread(target= Peer.listen_to_connection, args=(self,s), daemon=True).start()
+                    ###self.listen_to_connection(s)
                     print('3')
 
 
