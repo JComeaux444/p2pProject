@@ -63,7 +63,6 @@ class Peer:
             for s in readable:
                 #print("----------------*")
                 
-                # Has issues with port???
                 # If the server socket is in the readable list, it means a new outside client is trying to connect.
                 if s == self.server:
                     client_socket, addr = self.server.accept()
@@ -92,7 +91,7 @@ class Peer:
                     # finally we add them to the list
                     self.connection_list[self.id_counter] = (client_socket, (addr[0], listening_port)) # 2 uncom
                     self.id_counter += 1 # 2 uncom
-                    print('end')
+                    #print('end')
 
 
         #self.run()
@@ -153,7 +152,7 @@ class Peer:
     '''    
                             
     def listen_to_connection(self, client_socket, addr):
-        print('listening ', client_socket)
+        #print('listening ', client_socket)
         while True:
             try:
                 
@@ -161,14 +160,14 @@ class Peer:
                 # or the connection is closed (in which case recv() returns empty).
                 data = client_socket.recv(1024).decode()
                 if data:
-                    print('try get data')
+                    #print('try get data')
                     self.handle_received_message(client_socket, data)
                 else:
                     break
             except:
                 break
         # Connection was found to have no data, so we remove the connection.
-        print('try remove')
+        #print('try remove')
         self.remove_connection(client_socket)
         
 
@@ -247,7 +246,7 @@ class Peer:
             self.connection_list[self.id_counter] = (client_socket, (ip, port))
             print(f"Connected to {ip}:{port} assigning them ID {self.id_counter}")
             self.id_counter += 1
-            print("cp",self.id_counter)
+            #print("cp",self.id_counter)
         except Exception as e:
             print(f"FAILED to connect to {ip}:{port}. Error: {e}")
 
@@ -288,18 +287,6 @@ class Peer:
         if conn_id in self.connection_list:
             conn = self.connection_list[conn_id][0]
             conn.shutdown(socket.SHUT_RDWR) 
-            """
-            # we get socket here
-            conn = self.connection_list[conn_id][0]
-            try:
-                # Shut down the connection for both sending and receiving
-                conn.shutdown(socket.SHUT_RDWR)  
-                conn.close()  # Close the connection
-            except Exception as e:
-                # We can continue here now, we can ignore error.
-                print(f"Error shutting down connection: {e}")
-                
-            """
             self.inputs.remove(conn)
             del self.connection_list[conn_id]
             print(f"Connection {conn_id} terminated.")
