@@ -16,10 +16,15 @@ https://realpython.com/python-sockets/
 
 def get_my_ip():
         # Gets name of pc
-        hostname = socket.gethostname()
+        ##hostname = socket.gethostname()
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
         # Uses name of PC to find the current IP
-        ip_address = socket.gethostbyname(hostname)
-        print(f"Your IP address is: {ip_address}")
+        ##ip_address = socket.gethostbyname(hostname)
+        print(f"Your IP address is: {ip}")
+        return ip
 
 
 # PAss in port number from Peer
@@ -376,7 +381,7 @@ def start_file():
         # we get port in the second [1] arg
         port = int(sys.argv[1])
         # IP is got by hostname, EX: IP of my pc MSI is xxx.xxx.xxx.xx
-        host = socket.gethostbyname(socket.gethostname())
+        host = get_my_ip()
         peer = Peer(host, port)
         # print help commands so users know how to use
         handle_help()
